@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hodnocení aplikace Gordic Asistent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --primary-light: #EEF2FF;
+            --bg: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+            color: white;
+            padding: 36px 32px;
+            border-radius: var(--radius);
+            margin-bottom: 28px;
+            box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.15);
+        }
+
+        .header-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            color: #C7D2FE;
+        }
+
+        .header-card h1 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .header-card p {
+            color: #C7D2FE;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .q-group {
+            margin-bottom: 22px;
+        }
+
+        .q-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .q-label {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 8px;
+            display: block;
+            color: var(--text-main);
+        }
+
+        .q-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            margin-top: -4px;
+        }
+
+        /* Možnosti výběru */
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+
+        .option-label:hover {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .option-label input[type="radio"],
+        .option-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Textarea & Inputs */
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        /* Hvězdičkové / škálové hodnocení */
+        .rating-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .rating-box {
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .rating-box:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .rating-box input {
+            display: none;
+        }
+
+        .rating-box.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        /* Spodní akční tlačítka */
+        .action-card {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 36px;
+            font-size: 17px;
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-subtle {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 12px;
+            display: inline-block;
+        }
+
+        .btn-subtle:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .toast {
+            display: none;
+            background: #10B981;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HLAVIČKA -->
+    <div class="header-card">
+        <span class="header-badge">⭐ ZPĚTNÁ VAZBA OD ÚČETNÍ</span>
+        <h1>Jak se ti pracovalo s Gordic Asistentem?</h1>
+        <p>Ahoj mamko! Moc děkuji za vyzkoušení programu. Tento krátký dotazník mi pomůže upravit aplikaci přesně podle tvých potřeb a zvyklostí z reálné praxe. Vyplnění zabere cca 3 minuty.</p>
+    </div>
+
+    <form id="feedbackForm">
+
+        <!-- 1. PRVNÍ DOJEM A SPUŠTĚNÍ -->
+        <div class="section-card">
+            <div class="section-title">🚀 1. Spuštění a vzhled programu</div>
+
+            <div class="q-group">
+                <label class="q-label">Podařilo se ti program otevřít snadno?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="spusteni" value="Úplně bez problémů, hned napoprvé"> ✅ Úplně bez problémů, hned napoprvé</label>
+                    <label class="option-label"><input type="radio" name="spusteni" value="Windows ukázal modré varování SmartScreen, ale šlo to spustit"> ⚠️ Windows ukázal modré varování (SmartScreen), ale šlo to spustit</label>
+                    <label class="option-label"><input type="radio" name="spusteni" value="Musela jsem se zeptat, jak na to"> ❓ Musela jsem se zeptat, jak na to</label>
+                    <label class="option-label"><input type="radio" name="spusteni" value="Vůbec se mi to nepodařilo otevřít"> ❌ Vůbec se mi to nepodařilo otevřít</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Jak na tebe působí vzhled a ovládání okna?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="design" value="Přehledné, moderní a srozumitelné"> ⭐ Přehledné, moderní a srozumitelné</label>
+                    <label class="option-label"><input type="radio" name="design" value="Ujde to, ale chvilku mi trvalo se zorientovat"> 👍 Ujde to, ale chvilku mi trvalo se zorientovat</label>
+                    <label class="option-label"><input type="radio" name="design" value="Je tam moc věcí a tlačítek naráz"> 🤔 Je tam moc věcí a tlačítek naráz</label>
+                    <label class="option-label"><input type="radio" name="design" value="Písmo je příliš malé / špatně čitelné"> 🔍 Písmo je příliš malé / špatně čitelné</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. VYTĚŽOVÁNÍ FAKTUR (AI) -->
+        <div class="section-card">
+            <div class="section-title">🤖 2. Přesnost umělé inteligence při čtení faktur</div>
+
+            <div class="q-group">
+                <label class="q-label">Jaké faktury jsi v programu zkusila?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="checkbox" name="druh_faktur" value="Přibalenou vzorovou fakturu (Aurora)"> Přibalenou vzorovou fakturu (Aurora)</label>
+                    <label class="option-label"><input type="checkbox" name="druh_faktur" value="1 až 3 své skutečné PDF faktury z práce"> 1 až 3 své skutečné PDF faktury z práce</label>
+                    <label class="option-label"><input type="checkbox" name="druh_faktur" value="Větší balík různých faktur (více než 5)"> Větší balík různých faktur (více než 5)</label>
+                    <label class="option-label"><input type="checkbox" name="druh_faktur" value="Naskenovaný papír z tiskárny (pouze obrázek)"> Naskenovaný papír z tiskárny (obrázek bez textu)</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Přečetla umělá inteligence údaje správně?</label>
+                <p class="q-desc">Číslo faktury, IČO dodavatele, variabilní symbol, data splatnosti, základ daně a DPH.</p>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="presnost_ai" value="Vše na 100 % přesně"> 🎯 Vše na 100 % přesně</label>
+                    <label class="option-label"><input type="radio" name="presnost_ai" value="Většinu správně, ale spletla drobnost"> 👌 Většinu správně, ale spletla drobnost (např. datum nebo variabilní symbol)</label>
+                    <label class="option-label"><input type="radio" name="presnost_ai" value="Udělala početní chybu v DPH nebo celkové částce"> 🔢 Udělala početní chybu v DPH nebo částce</label>
+                    <label class="option-label"><input type="radio" name="presnost_ai" value="Fakturu vůbec nedokázala přečíst"> ❌ Fakturu vůbec nedokázala přečíst</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Rozpočtové paragrafy obcí (např. 6171 Úřad, 3631 Osvětlení, 3722 Odpady):</label>
+                <p class="q-desc">Doplnil program správný rozpočtový paragraf podle předmětu nákupu?</p>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="paragrafy" value="Ano, trefil přesně ten, co bych použila"> 🎯 Ano, trefil přesně ten paragraf, co bych použila</label>
+                    <label class="option-label"><input type="radio" name="paragrafy" value="Trefil se jen někdy"> ⚖️ Trefil se jen někdy</label>
+                    <label class="option-label"><input type="radio" name="paragrafy" value="Netrefil, nebo vracel prázdné pole"> ❌ Netrefil se, nebo vracel prázdné pole</label>
+                    <label class="option-label"><input type="radio" name="paragrafy" value="Nevšimla jsem si / nezkoumala jsem"> 🤷‍♀️ Nevšimla jsem si / nezkoumala jsem</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Pokud se stala nějaká chyba, u jakého dodavatele nebo v čem?</label>
+                <textarea name="chyby_detail" rows="2" placeholder="Např. U faktury od ČEZu špatně přečetlo variabilní symbol..."></textarea>
+            </div>
+        </div>
+
+        <!-- 3. IMPORT DO GORDICU (KLÍČOVÉ!) -->
+        <div class="section-card" style="border-left: 5px solid var(--primary);">
+            <div class="section-title">📂 3. Import vygenerovaného ISDOCu do systému GORDIC</div>
+
+            <div class="q-group">
+                <label class="q-label">Zkusila jsi vygenerovaný soubor (.isdoc) nahrát do systému Gordic?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="gordic_import" value="Ano, import prošel hladce bez chyby!"> 🎉 Ano, import do Gordicu prošel hladce bez jediné chyby!</label>
+                    <label class="option-label"><input type="radio" name="gordic_import" value="Ano, ale Gordic hlásil varování nebo chtěl doplnit nějaké pole"> ⚠️ Ano, ale Gordic hlásil varování nebo chtěl doplnit pole</label>
+                    <label class="option-label"><input type="radio" name="gordic_import" value="Gordic soubor úplně odmítl s chybou"> ❌ Gordic soubor úplně odmítl s chybou</label>
+                    <label class="option-label"><input type="radio" name="gordic_import" value="Zatím jsem to do Gordicu nezkoušela importovat"> ⏳ Zatím jsem to do Gordicu nezkoušela importovat</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Chybělo Gordicu nějaké konkrétní políčko?</label>
+                <p class="q-desc">Např. kód střediska, číslo zakázky, specifický symbol, typ dokladu, nebo předkontace?</p>
+                <textarea name="gordic_chybejici_pole" rows="2" placeholder="Pokud Gordic něco vyžadoval navíc, napiš sem co přesně..."></textarea>
+            </div>
+        </div>
+
+        <!-- 4. E-MAIL A NÁVOD -->
+        <div class="section-card">
+            <div class="section-title">📬 4. Stahování z e-mailu a interaktivní návod</div>
+
+            <div class="q-group">
+                <label class="q-label">Zkoušela jsi v Nastavení propojit svou e-mailovou schránku?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="email_test" value="Ano, podařilo se a stahuje faktury!"> ✅ Ano, podařilo se a faktury se stahují</label>
+                    <label class="option-label"><input type="radio" name="email_test" value="Zkoušela jsem, ale nepovedlo se mi získat heslo aplikace"> ⚠️ Zkoušela jsem, ale nepovedlo se mi získat heslo</label>
+                    <label class="option-label"><input type="radio" name="email_test" value="Ne, zatím mi stačí nahrávat PDF z počítače"> 📁 Ne, zatím mi stačí nahrávat PDF z počítače</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Jak srozumitelný byl rozklikávací návod na heslo k e-mailu?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="navod_hodnoceni" value="Perfektní, díky tlačítkům jsem hned věděla kam kliknout"> 💡 Perfektní, díky modrým tlačítkům jsem hned věděla kam kliknout</label>
+                    <label class="option-label"><input type="radio" name="navod_hodnoceni" value="Pochopila jsem, ale Google heslo aplikace je stejně trochu otrava"> 😐 Pochopila jsem, ale generování hesla u Googlu je zdlouhavé</label>
+                    <label class="option-label"><input type="radio" name="navod_hodnoceni" value="Nerozuměla jsem tomu / bylo to moc technické"> ❌ Nerozuměla jsem tomu / přišlo mi to složité</label>
+                    <label class="option-label"><input type="radio" name="navod_hodnoceni" value="Neotevírala jsem ho"> 🤷‍♀️ Neotevírala jsem ho</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. CELKOVÉ ZHODNOCENÍ -->
+        <div class="section-card">
+            <div class="section-title">⏱️ 5. Přínos pro tvou práci a celkový dojem</div>
+
+            <div class="q-group">
+                <label class="q-label">Kdyby program takhle fungoval každý den, kolik času by ti ušetřil?</label>
+                <div class="options-grid">
+                    <label class="option-label"><input type="radio" name="casova_uspora" value="Obrovská úspora (3 a více hodin týdně)"> 🚀 Obrovská úspora (3 a více hodin týdně – ruční přepisování je peklo)</label>
+                    <label class="option-label"><input type="radio" name="casova_uspora" value="Příjemná úspora (cca 1 až 2 hodiny týdně)"> ⏱️ Příjemná úspora (cca 1 až 2 hodiny týdně)</label>
+                    <label class="option-label"><input type="radio" name="casova_uspora" value="Spíš malá úspora (faktur nemáme tolik)"> 🤏 Spíš malá úspora (nemáme tolik faktur)</label>
+                    <label class="option-label"><input type="radio" name="casova_uspora" value="Neuštřil by mi čas (kontrola by trvala stejně dlouho)"> ❌ Neušetřil by mi čas</label>
+                </div>
+            </div>
+
+            <div class="q-group">
+                <label class="q-label">Co bys v programu nejvíc chtěla změnit, přidat nebo vylepšit?</label>
+                <textarea name="prani_a_namety" rows="3" placeholder="Co tě štvalo, co ti chybělo, nebo co by bylo super přidat..."></textarea>
+            </div>
+        </div>
+
+        <!-- ODESLÁNÍ / ZKOPÍROVÁNÍ -->
+        <div class="action-card">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Máš vyplněno? Děkuji! ❤️</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Klikni na tlačítko níže. Odpovědi se ti automaticky zkopírují do schránky, takže je můžeš jen vložit (Ctrl+V) do zprávy na WhatsAppu, e-mailu nebo Messengeru.</p>
+            
+            <button type="button" class="btn-submit" onclick="copyFeedback()">
+                📋 ZKOPÍROVAT MÉ ODPOVĚDI (pro syna)
+            </button>
+            <br>
+            <button type="button" class="btn-subtle" onclick="downloadFeedback()">
+                💾 Nebo stáhnout jako soubor (odpovedi.txt)
+            </button>
+
+            <div id="toastMessage" class="toast">
+                ✅ Odpovědi byly zkopírovány do schránky! Teď je stačí vložit (Ctrl+V) do zprávy.
+            </div>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+    function getFormDataAsText() {
+        const form = document.getElementById('feedbackForm');
+        const data = new FormData(form);
+        let text = "=====================================================\n";
+        text += "        HODNOCENÍ APLIKACE GORDIC ASISTENT OD MAMKY\n";
+        text += "=====================================================\n\n";
+
+        text += "1. SPUŠTĚNÍ A DESIGN:\n";
+        text += " - Spuštění: " + (data.get('spusteni') || "Nevyplněno") + "\n";
+        text += " - Vzhled a ovládání: " + (data.get('design') || "Nevyplněno") + "\n\n";
+
+        text += "2. PŘESNOST AI A FAKTURY:\n";
+        const druhy = data.getAll('druh_faktur');
+        text += " - Testované faktury: " + (druhy.length > 0 ? druhy.join(', ') : "Nevyplněno") + "\n";
+        text += " - Přesnost čtení údajů: " + (data.get('presnost_ai') || "Nevyplněno") + "\n";
+        text += " - Rozpočtové paragrafy: " + (data.get('paragrafy') || "Nevyplněno") + "\n";
+        text += " - Chyby u dodavatelů: " + (data.get('chyby_detail') || "Žádné") + "\n\n";
+
+        text += "3. IMPORT DO GORDICU:\n";
+        text += " - Výsledek importu ISDOC: " + (data.get('gordic_import') || "Nevyplněno") + "\n";
+        text += " - Chybějící pole v Gordicu: " + (data.get('gordic_chybejici_pole') || "Žádné") + "\n\n";
+
+        text += "4. E-MAIL A NÁVOD:\n";
+        text += " - Propojení e-mailu: " + (data.get('email_test') || "Nevyplněno") + "\n";
+        text += " - Srozumitelnost návodu: " + (data.get('navod_hodnoceni') || "Nevyplněno") + "\n\n";
+
+        text += "5. PŘÍNOS A NÁMĚTY:\n";
+        text += " - Odhad časové úspory: " + (data.get('casova_uspora') || "Nevyplněno") + "\n";
+        text += " - Přání a náměty na vylepšení: " + (data.get('prani_a_namety') || "Žádné") + "\n";
+        text += "=====================================================\n";
+        return text;
+    }
+
+    function copyFeedback() {
+        const text = getFormDataAsText();
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('toastMessage');
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 6000);
+        }).catch(err => {
+            alert("Nepodařilo se zkopírovat automaticky. Můžeš použít tlačítko 'Stáhnout jako soubor'.");
+        });
+    }
+
+    function downloadFeedback() {
+        const text = getFormDataAsText();
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Odpovedi_Gordic_Asistent_Mamka.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
