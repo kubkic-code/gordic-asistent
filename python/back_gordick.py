@@ -147,7 +147,14 @@ def vytahni_text_z_pdf(cesta_k_pdf):
         
         with open(cesta_index, "w", encoding="utf-8") as f:
             f.write(text)
-            
+
+        if not text or len(text.strip()) < 15:
+            raise Exception(
+                "Toto PDF neobsahuje čitelnou textovou vrstvu (jedná se o naskenovaný papír nebo obrázek). "
+                "Prozatím prosím použijte elektronické PDF (stažené z e-mailu nebo vystavené z fakturačního systému). "
+                "Podpora skenovaných papírových faktur (OCR) je v přípravě."
+            )
+
         return text
     except Exception as e:
         raise Exception(f"Nepodařilo se přečíst PDF: {e}")
