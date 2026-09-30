@@ -1,0 +1,13 @@
+{
+    "uzivatel": "Ucetni",
+    "system_vystup": "gordic",
+    "groq_api_key": "SEM_VLOZTE_GROQ_API_KLIC",
+    "ai_model": "llama-3.3-70b-versatile",
+    "email_nastaveni": {
+        "imap_server": "imap.gmail.com",
+        "email_adresa": "vas_ucet@gmail.com",
+        "heslo_aplikace": "vase_aplikacni_heslo_16_znaku"
+    },
+    "moje_ic_organizace": "00000000",
+    "zpracovano_faktur_celkem": 0
+}

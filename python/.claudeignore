@@ -1,0 +1,8 @@
+__pycache__/
+build/
+dist/
+archiv_pdf/
+faktury_vstup/
+isdoc_vystup/
+Gordic_Asistent.spec
+*.ico

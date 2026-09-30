@@ -1,0 +1,36 @@
+# Citlivá konfigurace s API klíči a hesly
+**/config.json
+!**/config.example.json
+.env
+
+# Dokumenty, faktury a citlivá data organizace
+**/*.pdf
+**/*.isdoc
+**/*.gpc
+**/*.abo
+**/*.txt
+!requirements.txt
+**/archiv_pdf/*
+!**/archiv_pdf/.gitkeep
+**/faktury_vstup/*
+!**/faktury_vstup/.gitkeep
+**/isdoc_vystup/*
+!**/isdoc_vystup/.gitkeep
+.index/
+
+# Python cache a buildy
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec.bak
+
+# PyInstaller a distribuční složky
+build/
+dist/
+*.exe
+
+# Vývojové prostředí
+.vscode/
+.idea/
+*.swp
+*.swo
