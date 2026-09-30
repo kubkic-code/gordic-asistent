@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [('ikona.ico', '.')]
 binaries = []
-hiddenimports = []
+hiddenimports = ['back_gordick', 'groq', 'pypdf', 'PyPDF2', 'PIL', 'webbrowser', 'imaplib', 'email', 'json', 'unicodedata']
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 

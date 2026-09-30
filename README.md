@@ -1,76 +1,107 @@
-# Gordic Asistent – AI Účetní Automatizace
+# Gordic Asistent – AI Účetní Automatizace (v2.1)
 
-Inteligentní asistent pro automatizaci zpracování účetních dokladů, párování bankovních výpisů a analýzu smluv, primárně navržený pro obecní úřady, příspěvkové organizace a účetní pracující se systémem **GORDIC** (s možností rozšíření pro systém **POHODA**).
+Inteligentní desktopová aplikace pro automatizaci zpracování účetních dokladů, párování bankovních výpisů a analýzu smluv. Primárně navrženo pro obecní úřady, příspěvkové organizace a účetní pracující se systémem **GORDIC** (s architekturou připravenou pro rozšíření o systém **POHODA**).
 
 ---
 
-## 🎯 Hlavní účel a funkce projektu
+## 🎯 Hlavní funkce aplikace
 
 Aplikace výrazně šetří čas účetním tím, že eliminuje manuální přepisování faktur do účetního softwaru, usnadňuje párování plateb z banky a poskytuje okamžitý přehled nad dokumenty:
 
 1. **Automatické vytěžování PDF faktur pomocí AI:**
-   - Využívá superrychlé LLM modely přes **Groq API** (`llama-3.3-70b-versatile`).
+   - Využívá rychlé LLM modely přes **Groq API** (`openai/gpt-oss-120b` s garantovaným strukturovaným JSON výstupem).
    - Z textu faktury spolehlivě extrahuje: číslo faktury, variabilní symbol, bankovní účet dodavatele, datum vystavení, název a IČO dodavatele, základ daně, DPH a celkovou částku.
-   - **Matematická kontrola:** Systém ověřuje, zda základ + DPH = celková částka. Pokud AI udělá chybu v počtech, doklad je označen k prověření.
+   - **Matematická kontrola:** Systém ověřuje, zda `Základ + DPH == Celkem`. Pokud AI udělá početní chybu, doklad je označen k prověření.
    - **Predikce rozpočtových paragrafů (pro obce):** Modul analyzuje předmět nákupu a automaticky navrhuje správný kód rozpočtové skladby obce (např. *6171 Místní správa*, *3631 Veřejné osvětlení*, *3722 Odpady*, *2212 Komunikace*, *3113 Školy*, *5512 Hasiči*).
 
 2. **Generování elektronických dokladů ISDOC (v6.0.1):**
-   - Vytěžená data transformuje do standardního formátu **ISDOC**, který lze přímo importovat do **Gordicu** (a dalších českých ERP).
+   - Vytěžená data transformuje do standardního formátu **ISDOC**, který lze přímo importovat do systému **Gordic** (a dalších českých ERP).
    - Generuje též JSON metadata do lokálního indexu pro okamžité vyhledávání a párování s bankou.
 
-3. **Stahování faktur přímo z e-mailu (IMAP):**
-   - Automatické připojení na poštovní schránku (např. Gmail přes aplikační heslo).
-   - Filtrování zpráv s předmětem „Faktura“ za zvolené časové období (den, týden, měsíc, rok).
+3. **Stahování faktur z e-mailu (IMAP) s automatickou detekcí:**
+   - **Chytrá detekce serveru:** Automaticky rozpozná a nakonfiguruje IMAP server podle domény (`@gmail.com` -> `imap.gmail.com`, `@seznam.cz` -> `imap.seznam.cz`, `@outlook.com` -> `outlook.office365.com` atd.).
+   - Filtrování zpráv s předmětem „Faktura“ za zvolené časové období (den, týden, měsíc, rok, celá doba).
    - Prevence duplicitního stahování již zpracovaných faktur.
 
-4. **Banka & Automatické generování Účetní košilky (GPC / ABO):**
+4. **Interaktivní průvodce pro účetní (Návod v aplikaci):**
+   - Integrovaný rozklikávací návod krok za krokem v sekci **⚙️ Nastavení**.
+   - Vysvětlení běžnou lidskou řečí, jak získat heslo aplikace pro **Gmail**, **Seznam.cz** i **Outlook**.
+   - **Tlačítka na 1 kliknutí:** Otevření oficiální stránky Google pro vygenerování hesla aplikace a kontrolu IMAP přímo ve webovém prohlížeči.
+
+5. **Banka & Automatické generování Účetní košilky (GPC / ABO):**
    - Načítání bankovních výpisů ve formátu **GPC / ABO** (standard českých bank).
    - Inteligentní párovací algoritmus propojující bankovní pohyby s vytěženými fakturami podle variabilního symbolu, částky a bankovního účtu.
-   - **Tisk účetní košilky:** Generuje formátovaný protokol s rekapitulací spárovaných i nespárovaných plateb a s **oficiálními schvalovacími rámečky pro obecní finanční kontrolu** (Příkazce operace / starosta, Správce rozpočtu, Hlavní účetní).
+   - **Tisk účetní košilky:** Generuje formátovaný protokol s rekapitulací spárovaných i nespárovaných plateb a s **oficiálními schvalovacími rámečky pro obecní finanční kontrolu** (Příkazce operace / starosta, Správce rozpočtu, Hlavní účetní dle zák. 320/2001 Sb.).
 
-5. **AI Právník (Rychlý výtah ze smluv):**
+6. **AI Právník (Rychlý výtah ze smluv):**
    - Načtení PDF smlouvy a okamžité vygenerování strukturovaného výtahu: smluvní strany, předmět smlouvy, finanční plnění a datum uzavření.
 
-6. **Lokální fulltextové vyhledávání:**
+7. **Lokální fulltextové vyhledávání:**
    - Každé zpracované PDF se ukládá do textového indexu v `.index`.
-   - Účetní může bleskově vyhledat jakýkoliv výraz napříč všemi archivovanými fakturami bez externí databáze.
+   - Bleskové vyhledání jakéhokoliv výrazu napříč všemi archivovanými fakturami bez nutnosti externí databáze.
 
-7. **Moderní asynchronní desktopové UI:**
+8. **Moderní asynchronní desktopové UI (v2.1):**
    - Vytvořeno v `customtkinter` (podpora tmavého/světlého režimu).
-   - Asynchronní architektura (threading) – operace s AI a e-mailem nezasekávají okno.
-   - Vestavěný logovací panel a testovací tlačítka pro ověření spojení s e-mailem a Groq API.
+   - Notion/Linear indigo sidebar, stavové karty, přehledný archiv s akcemi *Otevřít* a *Kopírovat*.
+   - Asynchronní threading – AI ani e-mail nezasekávají grafické rozhraní.
+   - Dynamické znovunačtení konfigurace za běhu (`reload_config`) při uložení v nastavení.
 
 ---
 
-## 📂 Struktura projektu po úklidu
+## 📂 Struktura projektu
 
-Projekt byl zorganizován do přehledné a čisté struktury:
-
-| Složka / Soubor | Popis |
-|---|---|
-| **[`gordick/`](file:///c:/Users/retar/Documents/02_Programovani/projekty/ucetni_automatizace/gordick)** | **Hlavní aktivní projekt** (nejnovější verze s moderním CustomTkinter UI, threadingem, testy připojení, predikcí rozpočtových paragrafů obce a ISDOC exportem). |
-| **[`vzory_a_historie/`](file:///c:/Users/retar/Documents/02_Programovani/projekty/ucetni_automatizace/vzory_a_historie)** | **Bezpečně oddělený archiv vzorů a programů:** původní kód pro export do systému **POHODA** (`ucetnictvi.py`, `gui_profi.py`), vzorové XML pro Pohodu a zkompilovaný `Gordic_Asistent.exe`. |
-| **[`README.md`](file:///c:/Users/retar/Documents/02_Programovani/projekty/ucetni_automatizace/README.md)** | Tato dokumentace celého projektu a návod k obsluze. |
+```
+.
+├── python/
+│   ├── front_gordick.py        # Hlavní GUI aplikace (CustomTkinter, asynchronní threading)
+│   ├── back_gordick.py         # Backend logika (Groq AI, ISDOC XML, GPC parser, predikce paragrafů)
+│   ├── config.json             # Lokální konfigurace s klíči (chráněno v .gitignore)
+│   ├── config.example.json     # Veřejná šablona konfigurace
+│   ├── Gordic_Asistent.spec    # PyInstaller specifikace pro sestavení .exe
+│   ├── ikona.ico               # Aplikační ikona
+│   ├── faktury_vstup/          # Vstupní složka pro PDF faktury
+│   ├── archiv_pdf/             # Archiv zpracovaných faktur (včetně vzorové faktury)
+│   └── isdoc_vystup/           # Výstupní složka vygenerovaných ISDOC souborů
+├── requirements.txt            # Python závislosti
+├── .gitignore                  # Ochrana citlivých dat, buildů a PDF
+├── KONTEXT_PROJEKTU.txt        # Kontextový soubor pro AI asistenty
+└── README.md                   # Tato dokumentace
+```
 
 ---
 
 ## 🚀 Jak aplikaci spustit
 
-### Požadavky
-- Python 3.10+
-- Nainstalované knihovny:
-  ```bash
-  pip install customtkinter groq pypdf pypdf2 pillow
-  ```
+### Možnost A: Samostatný `.exe` balíček (pro uživatele bez Pythonu)
+Pro běžné uživatele a účetní je k dispozici samostatně spustitelný balíček:
+1. Zkompilovaný soubor: `python/dist/Gordic_Asistent.exe` (nebo distribuční balíček `Gordic_Asistent_pro_mamku.zip`).
+2. Stačí rozbalit a dvakrát kliknout na `Gordic_Asistent.exe`. Není potřeba instalovat Python ani knihovny.
 
-### Nastavení konfigurace (`config.json`)
-Soubor `config.json` obsahuje základní parametry:
+### Možnost B: Spuštění ze zdrojového kódu (Python)
+1. **Požadavky:** Python 3.10+
+2. **Instalace závislostí:**
+   ```bash
+   pip install -r requirements.txt
+   pip install pyinstaller   # volitelné, pouze pro sestavení .exe
+   ```
+3. **Konfigurace:**
+   Zkopírujte `python/config.example.json` do `python/config.json` a zadejte svůj Groq API klíč.
+4. **Spuštění:**
+   ```bash
+   cd python
+   python front_gordick.py
+   ```
+
+---
+
+## ⚙️ Ukázka konfigurace (`config.json`)
+
 ```json
 {
-    "uzivatel": "Jméno Účetní",
+    "uzivatel": "Ucetni",
     "system_vystup": "gordic",
-    "groq_api_key": "VÁŠ_GROQ_API_KLÍČ",
-    "ai_model": "llama-3.3-70b-versatile",
+    "groq_api_key": "gsk_...",
+    "ai_model": "openai/gpt-oss-120b",
     "email_nastaveni": {
         "imap_server": "imap.gmail.com",
         "email_adresa": "ucetni@obec.cz",
@@ -81,29 +112,15 @@ Soubor `config.json` obsahuje základní parametry:
 }
 ```
 
-### Spuštění
-```bash
-cd "gordick/python"
-python front_gordick.py
-```
-
 ---
 
-## 🛠️ Vize a doporučený plán dalšího rozvoje
+## 🛠️ Vize a další doporučený rozvoj
 
-1. **Sjednocení repozitáře a Git:**
-   - Inicializovat `git` repozitář.
-   - Přesunout unikátní vzory ze složky `gordick/python/z_hotove programy_a_vzory` do nové složky např. `reference/` nebo `legacy_pohoda/`.
-   - Přejmenovat `gordick - claude` na hlavní pracovní kořen `src/` a starou složku `gordick` archivovat.
-
-2. **Multi-ERP podpora (Gordic + Pohoda + Abra):**
-   - V kódu již existují základy jak pro Gordic (ISDOC), tak pro Pohodu (XML). Vytvořit v nastavení přepínač cílového účetnictví.
-
-3. **OCR pro skenované / obrázkové faktury:**
-   - Dnes `PyPDF2` čte pouze textové vrstvy PDF. Pokud účetní dostane naskenovaný papír (bitmapové PDF), text se nenačte. Doporučeno doplnit lokální OCR (např. Tesseract nebo `pytesseract`) nebo multimodální AI (Groq / Llama Vision).
-
-4. **Lepší správa citlivých údajů:**
-   - Přesunout API klíče a hesla z otevřeného `config.json` do šifrovaného úložiště (např. Windows Credential Manager / `keyring`) nebo `.env`.
-
-5. **Distribuce:**
-   - Sestavit finální `.exe` instalátor pomocí PyInstalleru (`Gordic_Asistent.spec`), aby účetní nemusela mít na počítači instalovaný Python.
+1. **Feedback z reálného testování:**
+   - Ověření práce s fakturami různých dodavatelů a otestování importu vytvořených ISDOC souborů přímo do ostrého Gordicu.
+2. **OCR pro skenované / bitmapové faktury:**
+   - Současný modul čte textovou vrstvu PDF. Pro skenované papírové faktury doplnit fallback přes lokální OCR (Tesseract / pytesseract) nebo multimodální AI vizi.
+3. **Multi-ERP přepínač (Gordic vs. Pohoda):**
+   - Vytvořit v nastavení přepínač výstupního formátu dokladů (ISDOC pro Gordic vs. Pohoda XML).
+4. **Bezpečnost klíčů:**
+   - Možnost ukládat API klíč a heslo schránky do šifrovaného systémového trezoru (Windows Credential Manager / `keyring`).

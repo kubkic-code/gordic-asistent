@@ -9,26 +9,29 @@ import unicodedata  # Přidaný import pro čištění diakritiky!
 from groq import Groq
 import PyPDF2
 
-# --- NAČTENÍ KONFIGURACE (SaaS) ---
+# --- NAČTENÍ KONFIGURACE (SaaS & Distribuce) ---
+DOKUMENTY_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Gordic_Asistent")
 CONFIG_FILE = "config.json"
+
 if getattr(sys, 'frozen', False):
-    CONFIG_PATH = os.path.join(os.path.dirname(sys.executable), CONFIG_FILE)
+    local_cfg = os.path.join(os.path.dirname(sys.executable), CONFIG_FILE)
+    doc_cfg = os.path.join(DOKUMENTY_DIR, CONFIG_FILE)
+    if os.path.exists(local_cfg) and not os.path.exists(doc_cfg):
+        try:
+            os.makedirs(DOKUMENTY_DIR, exist_ok=True)
+            shutil.copy2(local_cfg, doc_cfg)
+        except Exception:
+            pass
+    if os.path.exists(doc_cfg):
+        CONFIG_PATH = doc_cfg
+    elif os.path.exists(local_cfg):
+        CONFIG_PATH = local_cfg
+    else:
+        CONFIG_PATH = doc_cfg
 else:
     CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG_FILE)
 
-try:
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        config = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    config = {
-        "groq_api_key": "", "ai_model": "llama-3.3-70b-versatile",
-        "moje_ic_organizace": "", "zpracovano_faktur_celkem": 0,
-        "email_nastaveni": {"imap_server": "imap.gmail.com",
-                            "email_adresa": "", "heslo_aplikace": ""}
-    }
-
 # --- NASTAVENÍ SLOŽEK PROFI ---
-DOKUMENTY_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Gordic_Asistent")
 SLOZKA_VSTUP = os.path.join(DOKUMENTY_DIR, "faktury_vstup")
 SLOZKA_VYSTUP = os.path.join(DOKUMENTY_DIR, "isdoc_vystup")
 SLOZKA_ARCHIV = os.path.join(DOKUMENTY_DIR, "archiv_pdf")
@@ -39,16 +42,62 @@ SLOZKA_SMLOUVY = os.path.join(DOKUMENTY_DIR, "archiv_smluv")
 for slozka in [SLOZKA_VSTUP, SLOZKA_VYSTUP, SLOZKA_ARCHIV, SLOZKA_INDEX, SLOZKA_KOSILKY, SLOZKA_SMLOUVY]:
     os.makedirs(slozka, exist_ok=True)
 
-# --- NASTAVENÍ GROQ API A MODELU Z CONFIGU ---
-os.environ["GROQ_API_KEY"] = config["groq_api_key"]
-client = Groq()
-AI_MODEL = config["ai_model"]
-MOJE_ICO = config["moje_ic_organizace"]
+# Globální proměnné konfigurace
+config = {}
+client = None
+AI_MODEL = "openai/gpt-oss-120b"
+MOJE_ICO = ""
+EMAIL_USER = ""
+EMAIL_PASS = ""
+IMAP_SERVER = "imap.gmail.com"
 
-# --- NASTAVENÍ E-MAILU Z CONFIGU ---
-EMAIL_USER = config["email_nastaveni"]["email_adresa"]
-EMAIL_PASS = config["email_nastaveni"]["heslo_aplikace"]
-IMAP_SERVER = config["email_nastaveni"]["imap_server"]
+def detekuj_imap_server(email_adresa):
+    """Automaticky určí IMAP server podle domény e-mailu."""
+    if not email_adresa or "@" not in email_adresa:
+        return "imap.gmail.com"
+    domena = email_adresa.split("@")[-1].lower().strip()
+    if domena in ["gmail.com", "googlemail.com"]:
+        return "imap.gmail.com"
+    elif domena in ["seznam.cz", "email.cz", "post.cz"]:
+        return "imap.seznam.cz"
+    elif domena in ["centrum.cz", "atlas.cz"]:
+        return "imap.centrum.cz"
+    elif domena in ["outlook.com", "hotmail.com", "office365.com"]:
+        return "outlook.office365.com"
+    elif domena in ["volny.cz"]:
+        return "imap.volny.cz"
+    else:
+        return f"imap.{domena}"
+
+def reload_config():
+    """Znovu načte config.json a aktualizuje API klienta a e-mailové připojení za běhu."""
+    global config, client, AI_MODEL, MOJE_ICO, EMAIL_USER, EMAIL_PASS, IMAP_SERVER
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        config = {
+            "groq_api_key": "", "ai_model": "openai/gpt-oss-120b",
+            "moje_ic_organizace": "", "zpracovano_faktur_celkem": 0,
+            "email_nastaveni": {"imap_server": "imap.gmail.com",
+                                "email_adresa": "", "heslo_aplikace": ""}
+        }
+
+    AI_MODEL = config.get("ai_model", "openai/gpt-oss-120b")
+    MOJE_ICO = config.get("moje_ic_organizace", "")
+    groq_key = config.get("groq_api_key", "")
+    os.environ["GROQ_API_KEY"] = groq_key
+    try:
+        client = Groq(api_key=groq_key) if groq_key else None
+    except Exception:
+        client = None
+
+    email_cfg = config.get("email_nastaveni", {})
+    EMAIL_USER = email_cfg.get("email_adresa", "")
+    EMAIL_PASS = email_cfg.get("heslo_aplikace", "")
+    IMAP_SERVER = email_cfg.get("imap_server") or detekuj_imap_server(EMAIL_USER)
+
+reload_config()
 
 # =========================================================
 # CHYTRÝ MODUL PRO PARAGRAFY A DIAKRITIKU
@@ -478,7 +527,7 @@ def analyzuj_smlouvu_mozkem(text_smlouvy):
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
+            model=AI_MODEL,
             temperature=0.1
         )
         odpoved = chat_completion.choices[0].message.content
@@ -523,14 +572,14 @@ def test_email_connection(email_addr=None, password=None, server=None):
     """Otestuje IMAP připojení. Vrací (bool, zpráva)."""
     addr = email_addr or EMAIL_USER
     pwd = password or EMAIL_PASS
-    srv = server or IMAP_SERVER
+    srv = server or (detekuj_imap_server(addr) if addr else IMAP_SERVER)
     try:
         mail = imaplib.IMAP4_SSL(srv)
         mail.login(addr, pwd)
         mail.logout()
-        return True, f"Připojení k {addr} úspěšné!"
+        return True, f"Připojení k {addr} ({srv}) úspěšné!"
     except Exception as e:
-        return False, f"Selhalo: {e}"
+        return False, f"Selhalo ({srv}): {e}"
 
 def test_api_connection(api_key=None):
     """Otestuje Groq API připojení. Vrací (bool, zpráva)."""

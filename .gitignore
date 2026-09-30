@@ -29,6 +29,9 @@ __pycache__/
 build/
 dist/
 *.exe
+*.zip
+Gordic_Asistent_pro_mamku/
+*.bak
 
 # Vývojové prostředí
 .vscode/
