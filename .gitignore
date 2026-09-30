@@ -10,6 +10,7 @@
 **/*.abo
 **/*.txt
 !requirements.txt
+!KONTEXT_PROJEKTU.txt
 **/archiv_pdf/*
 !**/archiv_pdf/.gitkeep
 **/faktury_vstup/*

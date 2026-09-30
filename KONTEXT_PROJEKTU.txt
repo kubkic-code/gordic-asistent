@@ -1,0 +1,67 @@
+================================================================================
+KONTEXT PROJEKTU PRO NOVOU AI RELACI (GORDIC ASISTENT)
+================================================================================
+Tento dokument slouží pro okamžité načtení kontextu v novém chatu. Přečti si ho a
+okamžitě víš vše podstatné o projektu, architektuře, stavu a dalším plánu.
+
+1. ZÁKLADNÍ INFORMACE O PROJEKTU
+--------------------------------------------------------------------------------
+Název: Gordic Asistent – AI Účetní Automatizace (v0.1.0)
+GitHub: https://github.com/kubkic-code/gordic-asistent
+Cíl: Desktopová aplikace pro účetní obcí, úřadů a organizací. Zbavuje účetní
+manuálního přepisování faktur a zdlouhavého párování bankovních výpisů.
+
+Hlavní schopnosti:
+- Automatické vytěžení PDF faktur pomocí AI (Groq API: llama-3.3-70b-versatile).
+- Matematická validace (Základ + DPH == Celkem).
+- Automatická predikce rozpočtových paragrafů obcí dle předmětu nákupu (např. 6171, 3631, 3722, 2212, 3113, 5512).
+- Export do standardního elektronického formátu ISDOC 6.0.1 (pro systém GORDIC).
+- Stahování faktur z e-mailu (IMAP / Gmail) s filtrem období a prevencí duplicit.
+- Párování bankovních výpisů ve formátu GPC (ABO) s fakturami dle VS, částky a účtu.
+- Tisk formátované "Účetní košilky" s oficiálními podpisovými rámečky pro obecní finanční kontrolu (starosta, správce rozpočtu, účetní dle zák. 320/2001 Sb.).
+- AI modul pro rychlý rozbor smluv v PDF (strany, předmět, částka, datum).
+- Lokální textový fulltextový index (.index) pro bleskové hledání.
+
+2. STRUKTURA SOUBORŮ V TÉTO SLOŽCE
+--------------------------------------------------------------------------------
+.
+├── python/
+│   ├── front_gordick.py        -> Hlavní GUI aplikace (CustomTkinter, asynchronní threading)
+│   ├── back_gordick.py         -> Backend logika (AI Groq, ISDOC XML, GPC parser, predikce paragrafů)
+│   ├── config.json             -> Lokální konfigurace s reálnými klíči (IGNOROVÁNO GITEM!)
+│   ├── config.example.json     -> Veřejná šablona konfigurace pro GitHub
+│   ├── test_mail.py            -> Testovací skript pro e-mailové připojení
+│   ├── Gordic_Asistent.spec    -> Konfigurační soubor pro PyInstaller (tvorba .exe)
+│   ├── ikona.ico               -> Aplikační ikona
+│   ├── faktury_vstup/          -> Vstupní složka pro PDF faktury (.gitkeep)
+│   ├── archiv_pdf/             -> Archiv zpracovaných faktur (.gitkeep)
+│   └── isdoc_vystup/           -> Výstupní složka vygenerovaných ISDOC souborů (.gitkeep)
+├── requirements.txt            -> Závislosti (customtkinter, groq, pypdf, pypdf2, pillow)
+├── .gitignore                  -> Chrání config.json, PDF, ISDOC, buildy a cache před nahráním na GitHub
+├── README.md                   -> Kompletní dokumentace projektu
+└── KONTEXT_PROJEKTU.txt        -> Tento soubor pro kontinuitu AI asistenta
+
+MIMO TUTO SLOŽKU (v nadřazeném adresáři ../vzory_a_historie/):
+- Je zálohován původní funkční kód pro ekonomický systém POHODA (generování Pohoda XML - ucetnictvi.py, gui_profi.py).
+
+3. AKTUÁLNÍ STAV PROJEKTU (KDE JSME SKONČILI)
+--------------------------------------------------------------------------------
+- Projekt je plně vyčištěný, staré duplicitní složky smazány.
+- Vytvořena verze v0.1.0, založen Git a úspěšně pushnuto na GitHub:
+  origin: https://github.com/kubkic-code/gordic-asistent.git (větev main).
+- config.json s reálnými klíči a hesly zůstal bezpečně POUZE na tomto lokálním stroji, Git ho necommituje.
+- Lokální spuštění funguje příkazem:
+  cd python
+  python front_gordick.py
+
+4. DOPORUČENÉ DALŠÍ KROKY (CO MŮŽE UŽIVATEL CHTÍT DÁLE ŘEŠIT)
+--------------------------------------------------------------------------------
+1. Podpora skenovaných PDF (OCR):
+   - Současný PyPDF2 čte pouze textové vrstvy. Přidat fallback pro skenované papíry přes Llama 3.2 Vision na Groqu nebo Tesseract OCR.
+2. Multi-ERP přepínač (Gordic vs. Pohoda):
+   - Integrovat kód z ../vzory_a_historie/ a umožnit v nastavení přepnout výstupní formát (ISDOC pro Gordic vs. XML pro Pohodu).
+3. Bezpečnost klíčů:
+   - Možnost ukládat API klíče a heslo do šifrovaného úložiště (Windows Credential Manager / keyring) namísto plaintextu v config.json.
+4. Distribuce aplikace (.exe):
+   - Sestavit spustitelný .exe balíček pomocí PyInstalleru (pyinstaller Gordic_Asistent.spec), aby účetní nemusela mít instalovaný Python.
+================================================================================
