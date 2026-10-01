@@ -1330,14 +1330,18 @@ class GordicAsistentUI(ctk.CTk):
             grid.grid_columnconfigure(col, weight=1)
 
         fields = [
-            ("Číslo faktury", data.get("cislo_faktury"), THEME["primary"]),
-            ("Dodavatel", data.get("dodavatel_nazev"), THEME["text"]),
-            ("Základ bez DPH", f"{float(data.get('castka_zaklad', 0)):,.2f} Kč", THEME["text"]),
-            ("DPH", f"{float(data.get('castka_dph', 0)):,.2f} Kč", THEME["warning"]),
-            ("Celkem", f"{float(data.get('castka_celkem', 0)):,.2f} Kč", THEME["success"]),
-            ("Variabilní symbol", data.get("variabilni_symbol"), THEME["text"]),
-            ("IČO dodavatele", data.get("dodavatel_ico"), THEME["text"]),
-            ("Paragraf", data.get("paragraf") or "—", THEME["violet"]),
+            ("Číslo faktury",    data.get("cislo_faktury"),                                    THEME["primary"]),
+            ("Dodavatel",        data.get("dodavatel_nazev"),                                   THEME["text"]),
+            ("Základ bez DPH",  f"{float(data.get('castka_zaklad', 0)):,.2f} Kč",              THEME["text"]),
+            ("DPH",             f"{float(data.get('castka_dph', 0)):,.2f} Kč",                 THEME["warning"]),
+            ("Celkem",          f"{float(data.get('castka_celkem', 0)):,.2f} Kč",              THEME["success"]),
+            ("Variabilní symbol", data.get("variabilni_symbol"),                               THEME["text"]),
+            ("IČO dodavatele",  data.get("dodavatel_ico"),                                     THEME["text"]),
+            ("DIČ dodavatele",  data.get("dodavatel_dic") or "—",                              THEME["text"]),
+            ("Paragraf",        data.get("paragraf") or "—",                                   THEME["violet"]),
+            ("Splatnost",       data.get("datum_splatnosti") or "—",                           THEME["warning"]),
+            ("Sazba DPH",       f"{data.get('sazba_dph', 21)} %",                              THEME["text"]),
+            ("Předmět plnění",  (data.get("predmet_plneni") or "—")[:60],                      THEME["primary"]),
         ]
         for idx, (lbl, val, col) in enumerate(fields):
             rc = self.result_card(grid, lbl, val, color=col)

@@ -210,12 +210,23 @@ def analyzuj_fakturu_mozkem(text_faktury):
     - "variabilni_symbol": (String, variabilní symbol pro platbu. Velmi často je shodný s číslem faktury, hledej zkratky jako VS nebo Var. symbol)
     - "cislo_uctu": (String, číslo bankovního účtu dodavatele včetně kódu banky, např. 12345/0100)
     - "datum_vystaveni": (String, formát RRRR-MM-DD)
+    - "datum_splatnosti": (String, formát RRRR-MM-DD, datum do kdy je třeba zaplatit. Hledej: splatnost, due date, zaplatit do)
+    - "predmet_plneni": (String, stručný popis co bylo nakoupeno nebo jaká služba byla poskytnuta, max 120 znaků)
     - "dodavatel_nazev": (String, název firmy)
     - "dodavatel_ico": (String, jen čísla)
+    - "dodavatel_dic": (String, DIČ dodavatele včetně předpony CZ, např. CZ12345678. Pokud není, vrať prázdný string.)
     - "castka_zaklad": (Number, částka bez DPH)
     - "castka_dph": (Number, částka DPH)
     - "castka_celkem": (Number, celková částka)
+    - "sazba_dph": (Number, sazba DPH v procentech - typicky 21, 12 nebo 0)
     - "odberatel_ico": (String, IČO příjemce)
+    - "polozky": (Array of objects, seznam položek faktury. Každá položka má tato pole:
+        - "popis": (String, název zboží nebo služby)
+        - "mnozstvi": (Number, počet kusů nebo jednotek, pokud není uvedeno dej 1)
+        - "mj": (String, měrná jednotka: ks, hod, m, m2, paušál, apod.)
+        - "cena_za_mj": (Number, cena za jednu jednotku bez DPH)
+        - "celkem_bez_dph": (Number, celková cena bez DPH za tuto položku)
+      Pokud nejsou v faktuře položky rozepsané, vrať prázdné pole [].)
     - "paragraf": (String, čtyřmístný kód rozpočtové skladby podle předmětu nákupu. Použij tento tahák:
         3113 = Základní školy (sešity, učebnice, vybavení do tříd)
         3631 = Veřejné osvětlení (elektřina pro lampy, opravy světel)
@@ -254,10 +265,12 @@ def analyzuj_fakturu_mozkem(text_faktury):
         raise Exception("AI nevrátila správný formát dat (JSON).")
 
 def vygeneruj_isdoc(data):
+    """Vygeneruje ISDOC 6.0.1 XML s plnými metadaty pro snadný import do systému GORDIC."""
     cislo_faktury = data.get('cislo_faktury', 'NeznameCislo')
     nazev_souboru = f"FA_{cislo_faktury}.isdoc"
     cesta_k_souboru = os.path.join(SLOZKA_VYSTUP, nazev_souboru)
 
+    # Uložení JSON pro bankovní párování
     cesta_json = os.path.join(SLOZKA_INDEX, f"FA_{cislo_faktury}.json")
     try:
         with open(cesta_json, "w", encoding="utf-8") as f:
@@ -265,24 +278,86 @@ def vygeneruj_isdoc(data):
     except Exception as e:
         print(f"Nepodařilo se uložit JSON pro banku: {e}")
 
-    vs = data.get('variabilni_symbol', '')
-    ucet = data.get('cislo_uctu', '')
-    paragraf = data.get('paragraf', '')
-    poznamka = f"Automaticky nacteny paragraf AI: {paragraf}" if paragraf else "Paragraf nedoplnen"
+    # Základní pole
+    vs           = data.get('variabilni_symbol', '')
+    ucet         = data.get('cislo_uctu', '')
+    paragraf     = data.get('paragraf', '')
+    predmet      = data.get('predmet_plneni', '')
+    dic_dod      = data.get('dodavatel_dic', '')
+    sazba_dph    = float(data.get('sazba_dph', 21))
+    datum_vystaveni  = data.get('datum_vystaveni', str(datetime.date.today()))
+    datum_splatnosti = data.get('datum_splatnosti', '') or datum_vystaveni
+    zaklad   = float(data.get('castka_zaklad', 0))
+    dph_cast = float(data.get('castka_dph', 0))
+    celkem   = float(data.get('castka_celkem', 0))
+
+    # Sestavení textové poznámky pro GORDIC (předkontace / paragraf)
+    note_parts = []
+    if paragraf:
+        nazev_par = PARAGRAFY.get(paragraf, ('',))[0]
+        note_parts.append(f"Paragraf: {paragraf} – {nazev_par}" if nazev_par else f"Paragraf: {paragraf}")
+    if predmet:
+        note_parts.append(f"Předmět: {predmet}")
+    note_parts.append("Zpracováno: Gordic Asistent AI")
+    poznamka = " | ".join(note_parts)
+
+    # Sestavení InvoiceLines (položky faktury)
+    polozky = data.get('polozky', []) or []
+    invoice_lines_xml = ""
+    if polozky:
+        for idx, p in enumerate(polozky, start=1):
+            popis_p   = str(p.get('popis', 'Položka')).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            mnozstvi  = float(p.get('mnozstvi', 1))
+            mj        = str(p.get('mj', 'ks'))
+            cena_mj   = float(p.get('cena_za_mj', 0))
+            celkem_p  = float(p.get('celkem_bez_dph', 0))
+            invoice_lines_xml += f"""
+    <InvoiceLine>
+        <ID>{idx}</ID>
+        <InvoicedQuantity unitCode="{mj}">{mnozstvi:.4f}</InvoicedQuantity>
+        <LineExtensionAmount>{celkem_p:.2f}</LineExtensionAmount>
+        <Item>
+            <Description>{popis_p}</Description>
+        </Item>
+        <Price>
+            <PriceAmount>{cena_mj:.4f}</PriceAmount>
+        </Price>
+    </InvoiceLine>"""
+    else:
+        # Fallback – jedna souhrnná položka pokud AI nezjistila detail
+        popis_fb = (predmet or 'Fakturované plnění').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        invoice_lines_xml = f"""
+    <InvoiceLine>
+        <ID>1</ID>
+        <InvoicedQuantity unitCode="pausal">1.0000</InvoicedQuantity>
+        <LineExtensionAmount>{zaklad:.2f}</LineExtensionAmount>
+        <Item>
+            <Description>{popis_fb}</Description>
+        </Item>
+        <Price>
+            <PriceAmount>{zaklad:.4f}</PriceAmount>
+        </Price>
+    </InvoiceLine>"""
+
+    # Sestavení DIC tagu pro dodavatele
+    dic_tag = f"<CompanyID>{dic_dod}</CompanyID>" if dic_dod else ""
 
     isdoc_obsah = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="http://isdoc.cz/namespace/2013/10/Document" version="6.0.1">
     <DocumentType>1</DocumentType>
     <ID>{cislo_faktury}</ID>
     <UUID>00000000-0000-0000-0000-000000000000</UUID>
-    <IssueDate>{data.get('datum_vystaveni', '2026-01-01')}</IssueDate>
-    <TaxPointDate>{data.get('datum_vystaveni', '2026-01-01')}</TaxPointDate>
+    <IssueDate>{datum_vystaveni}</IssueDate>
+    <TaxPointDate>{datum_vystaveni}</TaxPointDate>
+    <DuzpDate>{datum_vystaveni}</DuzpDate>
+    <DueDate>{datum_splatnosti}</DueDate>
     <VATApplicable>true</VATApplicable>
     <Note>{poznamka}</Note>
     <CurrRate>1</CurrRate>
     <AccountingSupplierParty>
         <Party>
             <PartyIdentification><ID>{data.get('dodavatel_ico', '')}</ID></PartyIdentification>
+            {dic_tag}
             <PartyName><Name>{data.get('dodavatel_nazev', '')}</Name></PartyName>
         </Party>
     </AccountingSupplierParty>
@@ -302,11 +377,21 @@ def vygeneruj_isdoc(data):
             </Details>
         </Payment>
     </PaymentMeans>
+    <TaxTotal>
+        <TaxSubTotal>
+            <TaxableAmount>{zaklad:.2f}</TaxableAmount>
+            <TaxAmount>{dph_cast:.2f}</TaxAmount>
+            <TaxCategory>
+                <Percent>{sazba_dph:.0f}</Percent>
+            </TaxCategory>
+        </TaxSubTotal>
+        <TaxAmount>{dph_cast:.2f}</TaxAmount>
+    </TaxTotal>
     <LegalMonetaryTotal>
-        <TaxExclusiveAmount>{data.get('castka_zaklad', 0)}</TaxExclusiveAmount>
-        <TaxInclusiveAmount>{data.get('castka_celkem', 0)}</TaxInclusiveAmount>
-        <PayableAmount>{data.get('castka_celkem', 0)}</PayableAmount>
-    </LegalMonetaryTotal>
+        <TaxExclusiveAmount>{zaklad:.2f}</TaxExclusiveAmount>
+        <TaxInclusiveAmount>{celkem:.2f}</TaxInclusiveAmount>
+        <PayableAmount>{celkem:.2f}</PayableAmount>
+    </LegalMonetaryTotal>{invoice_lines_xml}
 </Invoice>
 """
     with open(cesta_k_souboru, "w", encoding="utf-8") as f:
