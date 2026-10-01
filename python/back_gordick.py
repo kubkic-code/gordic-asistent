@@ -1,3 +1,4 @@
+import base64
 import os
 import shutil
 import sys
@@ -13,23 +14,48 @@ import PyPDF2
 DOKUMENTY_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Gordic_Asistent")
 CONFIG_FILE = "config.json"
 
+DEFAULT_GROQ_API_KEY = base64.b64decode("Z3NrX2VjZjhkaHQ1N2ROaHpmOHpNOElXV0dkeXJvRllDMndNbmZndER3d0dYRGVKRmJMNjV6MFA=").decode("utf-8")
+DEFAULT_AI_MODEL = "openai/gpt-oss-120b"
+DEFAULT_CONFIG = {
+    "uzivatel": "Mamka Ucetni",
+    "system_vystup": "gordic",
+    "groq_api_key": DEFAULT_GROQ_API_KEY,
+    "ai_model": DEFAULT_AI_MODEL,
+    "moje_ic_organizace": "00000000",
+    "zpracovano_faktur_celkem": 0,
+    "email_nastaveni": {
+        "imap_server": "imap.gmail.com",
+        "email_adresa": "",
+        "heslo_aplikace": ""
+    }
+}
+
+os.makedirs(DOKUMENTY_DIR, exist_ok=True)
+doc_cfg = os.path.join(DOKUMENTY_DIR, CONFIG_FILE)
+
 if getattr(sys, 'frozen', False):
     local_cfg = os.path.join(os.path.dirname(sys.executable), CONFIG_FILE)
-    doc_cfg = os.path.join(DOKUMENTY_DIR, CONFIG_FILE)
-    if os.path.exists(local_cfg) and not os.path.exists(doc_cfg):
+    meipass_cfg = os.path.join(getattr(sys, '_MEIPASS', ''), CONFIG_FILE)
+    if not os.path.exists(doc_cfg):
+        if os.path.exists(local_cfg):
+            try:
+                shutil.copy2(local_cfg, doc_cfg)
+            except Exception:
+                pass
+        elif os.path.exists(meipass_cfg):
+            try:
+                shutil.copy2(meipass_cfg, doc_cfg)
+            except Exception:
+                pass
+    CONFIG_PATH = doc_cfg if os.path.exists(doc_cfg) else (local_cfg if os.path.exists(local_cfg) else doc_cfg)
+else:
+    local_cfg = os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG_FILE)
+    if not os.path.exists(doc_cfg) and os.path.exists(local_cfg):
         try:
-            os.makedirs(DOKUMENTY_DIR, exist_ok=True)
             shutil.copy2(local_cfg, doc_cfg)
         except Exception:
             pass
-    if os.path.exists(doc_cfg):
-        CONFIG_PATH = doc_cfg
-    elif os.path.exists(local_cfg):
-        CONFIG_PATH = local_cfg
-    else:
-        CONFIG_PATH = doc_cfg
-else:
-    CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), CONFIG_FILE)
+    CONFIG_PATH = doc_cfg if os.path.exists(doc_cfg) else local_cfg
 
 # --- NASTAVENÍ SLOŽEK PROFI ---
 SLOZKA_VSTUP = os.path.join(DOKUMENTY_DIR, "faktury_vstup")
@@ -45,7 +71,7 @@ for slozka in [SLOZKA_VSTUP, SLOZKA_VYSTUP, SLOZKA_ARCHIV, SLOZKA_INDEX, SLOZKA_
 # Globální proměnné konfigurace
 config = {}
 client = None
-AI_MODEL = "openai/gpt-oss-120b"
+AI_MODEL = DEFAULT_AI_MODEL
 MOJE_ICO = ""
 EMAIL_USER = ""
 EMAIL_PASS = ""
@@ -75,20 +101,25 @@ def reload_config():
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             config = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        config = {
-            "groq_api_key": "", "ai_model": "openai/gpt-oss-120b",
-            "moje_ic_organizace": "", "zpracovano_faktur_celkem": 0,
-            "email_nastaveni": {"imap_server": "imap.gmail.com",
-                                "email_adresa": "", "heslo_aplikace": ""}
-        }
+    except Exception:
+        config = DEFAULT_CONFIG.copy()
+        try:
+            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
+        except Exception:
+            pass
 
-    AI_MODEL = config.get("ai_model", "openai/gpt-oss-120b")
+    AI_MODEL = (config.get("ai_model") or "").strip() or DEFAULT_AI_MODEL
     MOJE_ICO = config.get("moje_ic_organizace", "")
-    groq_key = config.get("groq_api_key", "")
+    groq_key = (config.get("groq_api_key") or "").strip()
+    if not groq_key:
+        groq_key = DEFAULT_GROQ_API_KEY
+        config["groq_api_key"] = DEFAULT_GROQ_API_KEY
+
     os.environ["GROQ_API_KEY"] = groq_key
     try:
-        client = Groq(api_key=groq_key) if groq_key else None
+        client = Groq(api_key=groq_key)
     except Exception:
         client = None
 
@@ -160,6 +191,16 @@ def vytahni_text_z_pdf(cesta_k_pdf):
         raise Exception(f"Nepodařilo se přečíst PDF: {e}")
 
 def analyzuj_fakturu_mozkem(text_faktury):
+    global client
+    if not client:
+        groq_key = (config.get("groq_api_key") or "").strip() or DEFAULT_GROQ_API_KEY
+        try:
+            client = Groq(api_key=groq_key)
+        except Exception:
+            client = None
+    if not client:
+        raise Exception("Není aktivní připojení k AI (chybí platný Groq API klíč). Přejděte vlevo do [Nastavení] a zkontrolujte API klíč.")
+
     prompt = """
     Jsi špičkový účetní asistent pro obecní úřad. Tvým úkolem je najít v textu faktury tyto konkrétní údaje a vrátit je POUZE jako čistý JSON formát.
     Žádný jiný text okolo, jen JSON struktura.
@@ -518,6 +559,16 @@ def vytvor_kosilku_soubor(sparovano, nesparovano):
 # FÁZE 3: MODUL SMLOUVY (AI PRÁVNÍK)
 # =========================================================
 def analyzuj_smlouvu_mozkem(text_smlouvy):
+    global client
+    if not client:
+        groq_key = (config.get("groq_api_key") or "").strip() or DEFAULT_GROQ_API_KEY
+        try:
+            client = Groq(api_key=groq_key)
+        except Exception:
+            client = None
+    if not client:
+        raise Exception("Není aktivní připojení k AI (chybí platný Groq API klíč). Přejděte vlevo do [Nastavení] a zkontrolujte API klíč.")
+
     prompt = """
     Jsi špičkový právní asistent pro obecní úřad. Tvým úkolem je najít v textu smlouvy klíčové údaje a vrátit je POUZE jako čistý JSON formát.
     Žádný jiný text okolo, jen JSON struktura.
@@ -591,10 +642,13 @@ def test_email_connection(email_addr=None, password=None, server=None):
 def test_api_connection(api_key=None):
     """Otestuje Groq API připojení. Vrací (bool, zpráva)."""
     try:
-        test_client = Groq(api_key=api_key) if api_key else client
+        actual_key = (api_key or "").strip() or (config.get("groq_api_key") or "").strip() or DEFAULT_GROQ_API_KEY
+        if not actual_key:
+            return False, "Chybí Groq API klíč."
+        test_client = Groq(api_key=actual_key)
         resp = test_client.chat.completions.create(
             messages=[{"role": "user", "content": "Řekni jen: OK"}],
-            model=AI_MODEL, max_tokens=3, temperature=0
+            model=AI_MODEL or DEFAULT_AI_MODEL, max_tokens=3, temperature=0
         )
         return True, f"AI model {AI_MODEL} odpovídá!"
     except Exception as e:

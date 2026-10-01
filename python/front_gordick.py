@@ -1382,14 +1382,20 @@ class GordicAsistentUI(ctk.CTk):
 
     def ulozit_nastaveni(self):
         try:
-            with open(back_gordick.CONFIG_PATH, "r", encoding="utf-8") as f:
-                config = json.load(f)
+            try:
+                with open(back_gordick.CONFIG_PATH, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            except Exception:
+                config = back_gordick.DEFAULT_CONFIG.copy()
             config["moje_ic_organizace"] = self.entry_ico.get().strip()
             config["groq_api_key"] = self.entry_api.get().strip()
             email_adresa = self.entry_email.get().strip()
+            if "email_nastaveni" not in config or not isinstance(config["email_nastaveni"], dict):
+                config["email_nastaveni"] = {}
             config["email_nastaveni"]["email_adresa"] = email_adresa
             config["email_nastaveni"]["heslo_aplikace"] = self.entry_heslo.get().strip()
             config["email_nastaveni"]["imap_server"] = back_gordick.detekuj_imap_server(email_adresa)
+            os.makedirs(os.path.dirname(back_gordick.CONFIG_PATH), exist_ok=True)
             with open(back_gordick.CONFIG_PATH, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=4)
             back_gordick.reload_config()
