@@ -637,6 +637,11 @@ class GordicAsistentUI(ctk.CTk):
         self.vysledky_panel = ctk.CTkFrame(card_st, fg_color="transparent")
         self.vysledky_otevreny = False
 
+        # Accordion: Jak importovat ISDOC do Gordicu
+        ctk.CTkFrame(card_st, height=1, fg_color=THEME["card_brd"]).pack(
+            fill="x", padx=14, pady=(6, 2))
+        self._build_navod_gordic_accordion(card_st)
+
         return frame
 
     # ---------- ARCHIV PDF ----------
@@ -648,9 +653,63 @@ class GordicAsistentUI(ctk.CTk):
 
     # ---------- ARCHIV ISDOC ----------
     def _build_archiv_isdoc(self):
-        frame, scroll, _ = self._create_archive_frame(
+        frame = ctk.CTkFrame(self.main_content_frame, fg_color="transparent")
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(1, weight=1)
+
+        # Info banner: Jak importovat do Gordicu
+        banner = ctk.CTkFrame(frame, fg_color=THEME["result_bg"], corner_radius=R,
+                              border_width=1, border_color=THEME["result_brd"])
+        banner.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        banner.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(banner, text="📌", font=self.fonts["icon_sm"]).grid(
+            row=0, column=0, rowspan=4, padx=(14, 8), pady=14, sticky="nw")
+        ctk.CTkLabel(
+            banner,
+            text="Jak importovat ISDOC soubor do systému GORDIC?",
+            font=self.fonts["body_bold"], text_color=THEME["text"], anchor="w"
+        ).grid(row=0, column=1, sticky="w", padx=(0, 14), pady=(14, 2))
+
+        kroky_text = (
+            "1. Otevřete složku s ISDOC soubory – klikněte na tlačítko 📂 vpravo nahoře.\n"
+            "2. Zkopírujte nebo přesuňte soubor  FA_xxxxxxxxx.isdoc  na síťové úložiště obce.\n"
+            "3. Přihlaste se do systému GORDIC (GINIS) a přejděte do modulu: Doklady → Import.\n"
+            "4. V dialogu importu vyberte typ: ISDOC (elektronická faktura), potvrďte tlačítkem OK.\n"
+            "5. Systém GORDIC automaticky načte dodavatele, částku a číslo faktury z ISDOC souboru.\n"
+            "6. Zkontrolujte načtené údaje, doplňte analytický účet / paragraf a zaúčtujte doklad."
+        )
+        ctk.CTkLabel(
+            banner, text=kroky_text,
+            font=self.fonts["small"], text_color=THEME["text_mute"],
+            justify="left", anchor="w", wraplength=780
+        ).grid(row=1, column=1, sticky="w", padx=(0, 14), pady=(0, 12))
+
+        # Archiv soubory (scrollable)
+        scroll_outer = ctk.CTkFrame(frame, fg_color=THEME["card"], corner_radius=R,
+                                    border_width=1, border_color=THEME["card_brd"])
+        scroll_outer.grid(row=1, column=0, sticky="nsew")
+        scroll_outer.grid_columnconfigure(0, weight=1)
+        scroll_outer.grid_rowconfigure(1, weight=1)
+
+        top_bar = ctk.CTkFrame(scroll_outer, fg_color="transparent")
+        top_bar.grid(row=0, column=0, sticky="ew", padx=14, pady=(10, 4))
+        ctk.CTkLabel(top_bar, text="Připravené ISDOC soubory",
+                     font=self.fonts["card_title"], text_color=THEME["text"]).pack(side="left")
+        self.btn(
+            top_bar, "📂 Otevřít složku",
             lambda: os.startfile(back_gordick.SLOZKA_VYSTUP),
-            self.sort_isdoc_var)
+            kind="neutral", height=28, font=self.fonts["small_bold"]
+        ).pack(side="right")
+
+        ctk.CTkFrame(scroll_outer, height=1, fg_color=THEME["card_brd"]).grid(
+            row=0, column=0, sticky="ew", padx=0, pady=(40, 0))
+
+        scroll = ctk.CTkScrollableFrame(
+            scroll_outer, fg_color="transparent", corner_radius=0)
+        scroll.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+
+        self.sort_isdoc_var.trace_add("write", self.nacti_historii)
         return frame, scroll
 
     # ---------- BANKA ----------
@@ -1120,6 +1179,97 @@ class GordicAsistentUI(ctk.CTk):
     def prejit_na_navod_email(self):
         self.show_nastaveni_event()
         self.rozbalit_navod_email()
+
+    # =============================================================
+    # NÁVOD NA IMPORT ISDOC DO GORDICU (ACCORDION V DASHBOARDU)
+    # =============================================================
+    def _build_navod_gordic_accordion(self, parent):
+        self.gordic_navod_otevren = False
+
+        self.gordic_navod_card = ctk.CTkFrame(
+            parent, fg_color=THEME["result_bg"], corner_radius=R,
+            border_width=1, border_color=THEME["result_brd"])
+        self.gordic_navod_card.pack(pady=(4, 10), padx=10, fill="x")
+
+        # Hlavička (klikací lišta)
+        hdr = ctk.CTkFrame(self.gordic_navod_card, fg_color="transparent")
+        hdr.pack(fill="x", padx=16, pady=10)
+        hdr.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(hdr, text="📌", font=self.fonts["icon_sm"]).grid(
+            row=0, column=0, rowspan=2, padx=(0, 12), sticky="w")
+
+        ctk.CTkLabel(
+            hdr, text="Jak naimportovat hotový ISDOC soubor do systému GORDIC?",
+            font=self.fonts["body_bold"], text_color=THEME["text"], anchor="w"
+        ).grid(row=0, column=1, sticky="w")
+
+        ctk.CTkLabel(
+            hdr,
+            text="Po vygenerování ISDOC souboru ho stačí nahrát do GORDIC systému – klikněte pro postup krok za krokem.",
+            font=self.fonts["small"], text_color=THEME["text_mute"], anchor="w"
+        ).grid(row=1, column=1, sticky="w")
+
+        self.btn_gordic_navod_toggle = ctk.CTkButton(
+            hdr, text="📖 Zobrazit postup  ▼", font=self.fonts["small_bold"],
+            height=32, corner_radius=R_BTN, fg_color=THEME["success"],
+            hover_color=THEME["success_hi"], text_color="white",
+            command=self.toggle_navod_gordic)
+        self.btn_gordic_navod_toggle.grid(row=0, column=2, rowspan=2, padx=(10, 0), sticky="e")
+
+        # Tělo (skryté ve výchozím stavu)
+        self.gordic_navod_body = ctk.CTkFrame(self.gordic_navod_card, fg_color="transparent")
+
+        ctk.CTkFrame(self.gordic_navod_body, height=1,
+                     fg_color=THEME["result_brd"]).pack(fill="x", padx=14, pady=(0, 10))
+
+        kroky = [
+            ("1️⃣  Otevřete složku s ISDOC soubory",
+             "Klikněte na tlačítko  ⚙️ Exporty ISDOC  v levém menu a pak na  📂 Otevřít složku.\n"
+             "Případně přejděte ručně do:  Dokumenty → Gordic_Asistent → isdoc_vystup"),
+            ("2️⃣  Zkopírujte soubor na síťové úložiště obce",
+             "Soubor má název  FA_xxxxxxxxx.isdoc  (místo x je číslo faktury).\n"
+             "Přesuňte nebo zkopírujte ho na váš síťový disk (kde máte přístup z GORDIC systému)."),
+            ("3️⃣  Přihlaste se do systému GORDIC (GINIS)",
+             "Otevřete GORDIC aplikaci a přejděte do modulu:\n"
+             "Doklady  →  Import dokladů  (nebo  Faktury přijaté  →  Import)"),
+            ("4️⃣  Vyberte typ importu: ISDOC",
+             "V dialogu importu zvolte typ souboru:  ISDOC – Elektronická faktura (ISO 16931)\n"
+             "Pak vyberte soubor  FA_xxxxxxxxx.isdoc  ze síťového úložiště a klikněte  OK."),
+            ("5️⃣  GORDIC automaticky načte údaje z faktury",
+             "Systém sám vyplní: jméno dodavatele, IČO, číslo faktury, částku, DPH a datum splatnosti.\n"
+             "Nemusíte nic přepisovat ručně – to za vás udělala AI."),
+            ("6️⃣  Zkontrolujte a zaúčtujte doklad",
+             "Doplňte analytický účet, paragraf a středisko (pokud vyžaduje váš úřad).\n"
+             "Klikněte na  Zaúčtovat  nebo  Uložit  – faktura je zpracována! ✅"),
+        ]
+
+        for t, d in kroky:
+            row_f = ctk.CTkFrame(self.gordic_navod_body, fg_color="transparent")
+            row_f.pack(fill="x", padx=16, pady=(2, 4))
+            ctk.CTkLabel(row_f, text=t,
+                         font=self.fonts["body_bold"], text_color=THEME["text"],
+                         anchor="w").pack(fill="x")
+            ctk.CTkLabel(row_f, text=d,
+                         font=self.fonts["small"], text_color=THEME["text_mute"],
+                         justify="left", anchor="w", wraplength=700).pack(fill="x", padx=(20, 0))
+
+        ctk.CTkButton(
+            self.gordic_navod_body, text="▲ Skrýt postup",
+            font=self.fonts["small_bold"],
+            fg_color="transparent", text_color=THEME["text_mute"],
+            hover_color=THEME["card_alt"], height=28, corner_radius=R_BTN,
+            command=self.toggle_navod_gordic).pack(pady=(4, 10))
+
+    def toggle_navod_gordic(self):
+        if getattr(self, "gordic_navod_otevren", False):
+            self.gordic_navod_body.pack_forget()
+            self.btn_gordic_navod_toggle.configure(text="📖 Zobrazit postup  ▼")
+            self.gordic_navod_otevren = False
+        else:
+            self.gordic_navod_body.pack(fill="x", padx=4, pady=(0, 10))
+            self.btn_gordic_navod_toggle.configure(text="▲ Skrýt postup")
+            self.gordic_navod_otevren = True
 
     # =============================================================
     # STAVOVÝ INDIKÁTOR A LOG
